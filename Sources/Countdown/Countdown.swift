@@ -5,11 +5,11 @@ import AVFoundation
 import TimerPublisher
 import FLog
 
-typealias ReferenceTimeProvider = () -> TimeInterval
+public typealias ReferenceTimeProvider = () -> TimeInterval
 @available(iOS 13.0, *)
-typealias CountdownPublisherClosure = (CountdownPublisherArgsProtocol) -> AnyPublisher<Double, Never>
+public typealias CountdownPublisherClosure = (CountdownPublisherArgsProtocol) -> AnyPublisher<Double, Never>
 
-enum CountdownState: CaseIterable {
+public enum CountdownState: CaseIterable {
     case ready
     case inProgress
     case triggering
@@ -19,7 +19,7 @@ enum CountdownState: CaseIterable {
 }
 
 @available(iOS 13.0, *)
-protocol CountdownDependenciesProtocol {
+public protocol CountdownDependenciesProtocol {
     var referenceTimeProvider: ReferenceTimeProvider { get }
     var countdownFrom: Double { get }
     var interval: TimeInterval { get }
@@ -29,44 +29,50 @@ protocol CountdownDependenciesProtocol {
 // In most cases the client should be providing the defaults, but
 // these fallbacks can provide a starting point and guide.
 @available(iOS 13.0, *)
-struct CountdownDependencies: CountdownDependenciesProtocol {
-    let referenceTimeProvider = { Date().timeIntervalSince1970 }
-    let countdownFrom = 5.0
-    let interval = 0.5
-    let countdownPublisherClosure = TimerPublisher().countdownPublisher
+public struct CountdownDependencies: CountdownDependenciesProtocol {
+    public let referenceTimeProvider = { Date().timeIntervalSince1970 }
+    public let countdownFrom = 5.0
+    public let interval = 0.5
+    public let countdownPublisherClosure = TimerPublisher().countdownPublisher
+    public init() {}
 }
 
-struct CountdownPublisherArgs: CountdownPublisherArgsProtocol {
-    let countdownFrom: Double
-    let referenceTime: TimeInterval
-    let interval: TimeInterval? // fall back to default if not provided
+public struct CountdownPublisherArgs: CountdownPublisherArgsProtocol {
+    public let countdownFrom: Double
+    public let referenceTime: TimeInterval
+    public let interval: TimeInterval? // fall back to default if not provided
+    public init(countdownFrom: Double, referenceTime: TimeInterval, interval: TimeInterval?) {
+        self.countdownFrom = countdownFrom
+        self.referenceTime = referenceTime
+        self.interval = interval
+    }
 }
 
 // referenceTime is the absolute time when the countdown starts. In most cases this will be the current time.
 // but for testing (and added feature flexibility) it is useful to specify a specific time.
 @available(iOS 14.0, *)
-class Countdown: ObservableObject {
+public class Countdown: ObservableObject {
     static let log = FLog<Countdown>.make()
     
     // The initial value of the time property before any updates have been published by the underlying publisher
-    static let initialCountdownTime = 0.0
+    public static let initialCountdownTime = 0.0
     
-    @Published private(set) var time = Countdown.initialCountdownTime
-    @Published private(set) var state: CountdownState
+    @Published public private(set) var time = Countdown.initialCountdownTime
+    @Published public private(set) var state: CountdownState
     
     private var cancellable: AnyCancellable?
     private var dependencies: CountdownDependenciesProtocol
     
     private var countdownPublisher: CountdownPublisherClosure
     
-    init(_ deps: CountdownDependenciesProtocol = CountdownDependencies(), initialState: CountdownState = .ready) {
+    public init(_ deps: CountdownDependenciesProtocol = CountdownDependencies(), initialState: CountdownState = .ready) {
         self.dependencies = deps
         self.state = initialState
         self.countdownPublisher = deps.countdownPublisherClosure // syntactic sugar
         Self.log.debug("Countdown Initialized")
     }
     
-    func reset() {
+    public func reset() {
         cancellable?.cancel()
         switch state {
         case .ready:
@@ -80,7 +86,7 @@ class Countdown: ObservableObject {
         time = Countdown.initialCountdownTime
     }
     
-    func start(_ countdownFrom: Double? = nil,
+    public func start(_ countdownFrom: Double? = nil,
                interval: TimeInterval? = nil,
                referenceTime: TimeInterval? = nil) {
         let interval = interval ?? dependencies.interval
@@ -104,17 +110,17 @@ class Countdown: ObservableObject {
     
     // Basically start, but with a cleaner type signature
     // instead of (TimeInterval, TimeInterval, Double) -> Void, it is () -> Void
-    func restart() {
+    public func restart() {
         start()
     }
     
-    func stop() {
+    public func stop() {
         Self.log.debug("stopping countdown")
         updateState(.stopped)
         cancellable?.cancel()
     }
     
-    func complete() {
+    public func complete() {
         Self.log.debug("Countdown complete")
         self.cancellable?.cancel()
         updateState(.complete)
